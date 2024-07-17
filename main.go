@@ -19,9 +19,17 @@ import (
 	"strings"
 )
 
+// MinioClientInterface defines the methods needed from the Minio client.
+type MinioClientInterface interface {
+	GetObject(ctx context.Context, bucketName, objectName string, opts minio.GetObjectOptions) (*minio.Object, error)
+	MakeBucket(ctx context.Context, bucketName string, opts minio.MakeBucketOptions) error
+	BucketExists(ctx context.Context, bucketName string) (bool, error)
+	PutObject(ctx context.Context, bucketName string, objectName string, reader io.Reader, objectSize int64, opts minio.PutObjectOptions) (info minio.UploadInfo, err error)
+}
+
 // A MinioClients slice to store all clients active
 type MinioClients struct {
-	minioClients []*minio.Client
+	minioClients []MinioClientInterface
 }
 
 // responsePutObject result of put objects operation
@@ -70,7 +78,7 @@ func main() {
 
 // getClientForID get id hash int and calculate minioClients slice index
 // it return minio client instance
-func (g *MinioClients) getClientForID(id string) *minio.Client {
+func (g *MinioClients) getClientForID(id string) MinioClientInterface {
 	// Simple hash to distribute requests
 	index := hashStringToInt(id) % len(g.minioClients)
 	log.Debug().Msgf("getClientForID: ID => %s, index => %d", id, index)
@@ -171,7 +179,7 @@ func newGateway() (*MinioClients, error) {
 		return nil, err
 	}
 
-	var minioClients []*minio.Client
+	var minioClients []MinioClientInterface
 
 	for _, containerF := range containers {
 
