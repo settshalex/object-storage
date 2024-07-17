@@ -135,15 +135,15 @@ func (g *MinioClients) getObjectHandler(w http.ResponseWriter, r *http.Request) 
 	// GET object from minio client
 	obj, err := clientMinio.GetObject(context.Background(), GetEnvDefault("MINIO_BUCKET_NAME", "bucket"), id, minio.GetObjectOptions{})
 	if err != nil {
-		if err.Error() == "The specified key does not exist." {
-			http.Error(w, "Object not found", http.StatusNotFound)
-		} else {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer obj.Close()
-
+	_, err = obj.Stat()
+	if err != nil {
+		http.Error(w, "Object not found", http.StatusNotFound)
+		return
+	}
 	_, err = io.Copy(w, obj)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
