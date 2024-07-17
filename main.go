@@ -35,8 +35,8 @@ type responsePutObject struct {
 func main() {
 	// Set logging level
 	loggingLevel := zerolog.ErrorLevel
-	debug := GetEnvDefault("DEBUG", "false")
-	if debug == "true" {
+	envDefault := GetEnvDefault("DEBUG", "false")
+	if envDefault == "true" {
 		loggingLevel = zerolog.DebugLevel
 	}
 	zerolog.SetGlobalLevel(loggingLevel)
