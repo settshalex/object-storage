@@ -80,7 +80,10 @@ func (g *MinioClients) getClientForID(id string) *minio.Client {
 // hashStringToInt calculates the CRC32 hash and returns it as an int integer.
 func hashStringToInt(s string) int {
 	h := crc32.NewIEEE()
-	h.Write([]byte(s))
+	_, err := h.Write([]byte(s))
+	if err != nil {
+		log.Error().Msgf("Hash function error: %s", err.Error())
+	}
 	sum32 := h.Sum32()
 	log.Debug().Msgf("hashStringToInt: %s => %d", s, sum32)
 	return int(sum32)
@@ -138,7 +141,12 @@ func (g *MinioClients) getObjectHandler(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer obj.Close()
+	defer func(obj *minio.Object) {
+		err := obj.Close()
+		if err != nil {
+			log.Error().Msgf("An error occured while closing object: %s", err.Error())
+		}
+	}(obj)
 	_, err = obj.Stat()
 	if err != nil {
 		http.Error(w, "Object not found", http.StatusNotFound)
